@@ -1,7 +1,7 @@
 import hashlib
 import random
 import os
-from flask import Flask, request, render_template, redirect
+from flask import Flask, request, render_template, redirect, jsonify
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -23,20 +23,29 @@ def home():
     """
         Home page
     """
+
+    return render_template('index.html')
+
+
+
+@app.route('/shorten_url', methods=['GET','POST'])
+def shorten_url():
+    """
+    url shortener attached to javascript
+    """
     url = ""
-    if request.form:
-        url = str(request.form['urllink'])
+    url = request.args.get('longurl')
 
     query = {'longurl':url}
     url_exists_count = collection.count_documents(query)
     if url_exists_count==0 and len(url)>5:
-        shorten_url = generate_short_code(url)
-        query = {'longurl':url,'shorturl':shorten_url}
+        short_url = generate_short_code(url)
+        query = {'longurl':url,'shorturl':short_url}
         collection.insert_one(query)
     else:
         pass
 
-    return render_template('index.html')
+    return jsonify({"short_url":short_url})
 
 
 
@@ -50,15 +59,22 @@ def generate_short_code(long_url):
     extra_encoding_string = ''.join(random.sample(extra_encoding_list, 4))
 
     short_code = hash_value[:4] + extra_encoding_string
-    return short_code
+    return str(short_code)
 
 
 @app.route('/<pk>', methods=['GET'])
 def fetch_long_url(pk):
+    """
+    used to fetch original url
+    """
     url = ""
-    query = {'shorturl':str(pk)}
-    url = collection.find_one(query)['longurl']
-    return redirect(url)
+    try:
+        query = {'shorturl':str(pk)}
+        url = collection.find_one(query)['longurl']
+        return redirect(url)
+    except TypeError:
+        print("TypeError: 'NoneType' object is not subscriptable")
+        return render_template('index.html')
     
 
 if __name__ == '__main__':

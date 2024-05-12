@@ -42,6 +42,8 @@ def shorten_url():
         short_url = generate_short_code(url)
         query = {'longurl':url,'shorturl':short_url}
         collection.insert_one(query)
+    elif len(url)>5:
+        short_url = collection.find_one(query)["shorturl"]
     else:
         pass
 
